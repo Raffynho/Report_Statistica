@@ -13,7 +13,7 @@ libertine: false
 toc: true
 lof: true
 lot: false
-header-includes: \usepackage[italian]{babel}
+header-includes: #\usepackage[italian]{babel}
 ---
 
 ```{r setup, echo=F, include=F}
@@ -26,7 +26,7 @@ library(purrr)
 
 # Impostazioni output
 knitr::opts_chunk$set(
-	fig.align  = "left",        # allineamento figure
+	fig.align  = "center",      # allineamento figure
 	fig.dim    = c(5, 3) * 1.2, # rapporto larghezza/altezza e fattore di scala
 	out.height = "2.8in",       # altezza effettiva figure
 	message    = FALSE,         # sopprimi messaggi
@@ -37,24 +37,27 @@ knitr::opts_chunk$set(
   tidy.opts  = list(width.cutoff=I(75)) # massima larghezza codice nei chunk
 )
 ```
+\newpage
 
 
 # Preparazione dei dati
 
 ```{r}
-N <- 50
-
 Ord_dati <- expand.grid(
-  f = seq(100, 500, 50),
-  delta = seq(-50, 50, 5),
-  result = NA
-)
-
-Ord_dati %>% mutate(
+  Force_sx = seq(100, 500, 50),
+  Delta_force = seq(-50, 50, 5),
+  Result = NA
+) %>% mutate(
   StdOrd = 1:n(),
   RunOrd = sample(n()),
-  .before = f
+  .before = Force_sx
 ) %>% arrange(RunOrd)
-
-
 ```
+
+```{r tab1}
+kable(Ord_dati[1:5, 1:5], booktabs = T, caption = "Tabella per l'ordine di test") %>%
+  kable_styling(latex_options = c("striped", "HOLD_position"), position = "left")
+```
+
+
+
