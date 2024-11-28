@@ -5,7 +5,7 @@ logo: "unitn_logo.pdf"
 logo_height: "1.2cm"
 author: "Tommaso Raffaelli"
 date: "`r Sys.Date()`"
-company: "Dipartimento di Ingegneria Industriale, corso di Misure Industriali"
+company: "Dipartimento di Ingegneria Industriale - Corso di Misure Industriali"
 output: memor::pdf_memo
 classoption: a4paper
 number_sections: true
@@ -37,6 +37,10 @@ knitr::opts_chunk$set(
   tidy.opts  = list(width.cutoff=I(75)) # massima larghezza codice nei chunk
 )
 ```
+\small * Tutte le tabelle complete saranno disponibili alla fine del documento
+
+ 
+
 \newpage
 
 
@@ -44,20 +48,37 @@ knitr::opts_chunk$set(
 
 ```{r}
 Ord_dati <- expand.grid(
-  Force_sx = seq(100, 500, 50),
-  Delta_force = seq(-50, 50, 5),
-  Result = NA
+  Forza_sx = seq(100, 500, 50),
+  Delta_forza = seq(-50, 50, 5),
+  Risultato = NA
 ) %>% mutate(
   StdOrd = 1:n(),
   RunOrd = sample(n()),
-  .before = Force_sx
+  .before = Forza_sx
 ) %>% arrange(RunOrd)
+
+write.csv(Ord_dati, "Test_suite.csv")
 ```
 
 ```{r tab1}
-kable(Ord_dati[1:5, 1:5], booktabs = T, caption = "Tabella per l'ordine di test") %>%
-  kable_styling(latex_options = c("striped", "HOLD_position"), position = "left")
+kable(Ord_dati[1:5,], booktabs=T, caption="Ordine di test", comment="* La tabella completa sarà disponibile alla fine del documento") %>%
+  kable_styling(latex_options = c("striped", "HOLD_position"), position = "center")
 ```
+
+## Lettura dei dati
+
+```{r}
+Misurazioni_random <- read.csv("Misurazioni_random_1.csv", comment="#")
+Misurazioni_ordinate <- read.csv("Misurazioni_ordinate.csv", comment="#")
+Misurazioni_ordinate
+```
+
+
+
+
+
+
+
 
 
 
