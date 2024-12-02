@@ -36,6 +36,8 @@ knitr::opts_chunk$set(
 	tidy       = TRUE,          # formatta il codice dei chunk
   tidy.opts  = list(width.cutoff=I(75)) # massima larghezza codice nei chunk
 )
+
+set.seed(181203)
 ```
 \small * Tutte le tabelle complete saranno disponibili alla fine del documento
 
@@ -60,6 +62,21 @@ Ord_dati <- expand.grid(
 write.csv(Ord_dati, "Test_suite.csv")
 ```
 
+Facendo `expand.grid` otteniamo tutte le combinazioni di dei due fattori: `Forza_sx` e `Delta_forza` quindi possiamo da questa tabella completa selezionare una quantità minore di misurazioni in modo da ridurre il numero di misurazioni durante il test 
+
+```{r}
+Ord_dati <- Ord_dati %>% 
+  mutate(
+    test = runif(n()) > 1/2
+  ) %>% 
+  filter(test) %>% 
+  select(!test)
+
+Ord_dati
+```
+
+La metà delle misurazioni non dovrebbe influenzare significatamente la nosta abilità di fare un modello adeguato per l'applicazione considerata 
+
 ```{r tab1}
 kable(Ord_dati[1:5,], booktabs=T, caption="Ordine di test", comment="* La tabella completa sarà disponibile alla fine del documento") %>%
   kable_styling(latex_options = c("striped", "HOLD_position"), position = "center")
@@ -70,9 +87,22 @@ kable(Ord_dati[1:5,], booktabs=T, caption="Ordine di test", comment="* La tabell
 ```{r}
 Misurazioni_random <- read.csv("Misurazioni_random_1.csv", comment="#")
 Misurazioni_ordinate <- read.csv("Misurazioni_ordinate.csv", comment="#")
-Misurazioni_ordinate
+Misurazioni_random
 ```
 
+```{r}
+Misurazioni_random %>% 
+  ggplot(aes(x=F1, y=angle, group=DF, color=DF)) + 
+  geom_line() + 
+  geom_point(aes(y=angle)) + 
+  scale_color_viridis_b()
+
+Misurazioni_random %>% 
+  ggplot(aes(x=DF, y=angle, group=F1, color=F1)) + 
+  geom_line() + 
+  geom_point(aes(y=angle)) + 
+  scale_color_viridis_b()
+```
 
 
 
