@@ -39,14 +39,50 @@ knitr::opts_chunk$set(
 
 set.seed(181203)
 ```
-\small * Tutte le tabelle complete saranno disponibili alla fine del documento
 
- 
+\vfill
+\begin{small}
+* Tutte le tabelle troppo grandi per la visualizzazione all'interno del documento verranno messe per intero alla fine del documento
+\end{small}
 
 \newpage
 
+* Preparazione delle misure 
+* Preparazione dei dati 
+* Sviluppo del modello
+- Controllo dei residui 
+- Comparazione con punti di test
+* Test con bootstrap
+* Conclusione 
+
+
+* Variabili modificabili 
+
+Durante la fase di test possiamo modificare due parametro della bilancia che sono: 
+
+* ``Forza sul piatto sinisto```
+* ``Differenza della forza fra i due piatti``
+
+Il primo varia fra `100` e `500` a intervalli di `50` invece il secondo varia fra `-50` e`50` a intervalli di `5`.
+Generando una tabella di esecuzione delle misurazioni usando la funzione `expand.grid` si nota che essa è di dimensione `192 x ...`; essendo che il nostro esperimento è svolto digitalmente possiamo andare a prelevare tutte le combinazioni senza avere particolari conseguenze in termini di tempo e di spesa, cosa che in un test reale sarebbe da riconsiderare.
+
+
+
+
+
+
+
+
+
+
+# Overview dell'esperimento
+
+
 
 # Preparazione dei dati
+
+Come detto in precendenza durante la taratura possiamo modificare due variabili del sistema *forza sul piatto sinistro* che chiameremo `Forza_sx` e *differenza fra i due piatti* che verrà chiamata `Delta_forza`.
+Deciso questo possiamo generare una tabella di test che verrà data all'operatore che svolgerà le misurazioni per la calibrazione
 
 ```{r}
 Ord_dati <- expand.grid(
@@ -62,25 +98,19 @@ Ord_dati <- expand.grid(
 write.csv(Ord_dati, "Test_suite.csv")
 ```
 
-Facendo `expand.grid` otteniamo tutte le combinazioni di dei due fattori: `Forza_sx` e `Delta_forza` quindi possiamo da questa tabella completa selezionare una quantità minore di misurazioni in modo da ridurre il numero di misurazioni durante il test 
+Definiamo `StdOrd` come ordine in cui `expand.grid` ha generato la tabella e `RunOrd` come una *casualizzazione* di `StdOrd`.
 
-```{r}
-Ord_dati <- Ord_dati %>% 
-  mutate(
-    test = runif(n()) > 1/2
-  ) %>% 
-  filter(test) %>% 
-  select(!test)
 
-Ord_dati
-```
-
-La metà delle misurazioni non dovrebbe influenzare significatamente la nosta abilità di fare un modello adeguato per l'applicazione considerata 
-
+Ottenendo la seguente tabella \ref{tab:tab1}:
 ```{r tab1}
-kable(Ord_dati[1:5,], booktabs=T, caption="Ordine di test", comment="* La tabella completa sarà disponibile alla fine del documento") %>%
+Ord_dati[1:5,] %>% 
+  kable(booktabs=T, caption="Ordine di test") %>%
   kable_styling(latex_options = c("striped", "HOLD_position"), position = "center")
 ```
+
+L'operatore segiurà l'ordine indicato da `RunOrd` ottenendo una casualizzazione dell'ordine di esecuzione.
+
+
 
 ## Lettura dei dati
 
