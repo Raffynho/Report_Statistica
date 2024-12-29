@@ -13,7 +13,7 @@ libertine: false
 toc: true
 lof: true
 lot: false
-header-includes: \usepackage[italian]{babel}
+header-includes: #\usepackage[italian]{babel}
 ---
 
 ```{r setup, echo=F, include=F}
@@ -75,13 +75,21 @@ Generando una tabella di esecuzione delle misurazioni usando la funzione `expand
 
 
 
+# Introduzione 
 
+L'obbiettivo di questo esperimento è quello di simulare un intero processo di taratura dalla scelta del metodo di test all'analisi del modello per la regressione per poi su tutto questo fare un report che segue tutti i passaggi e tutte le scelte fatte.
 
 
 
 
 
 # Overview dell'esperimento
+
+L'esperimento consiste nel simulare un esperimento di 
+
+
+
+
 
 In cosa consiste l'esperimento
 
@@ -170,7 +178,7 @@ Ora possiamo iniziare a fare la regressione però prima dobbiamo fare alcune con
 
 La regressione seguirà un modello fisico:
 $$
-tan(angle) = (a \frac{DF}{2F1 + FM + DF})
+tan(angle) = (a * \frac{DF}{2F1 + FM + DF})
 $$
 questo non è un modello lineare infatti per poter regredire i punti dovremmo usare un metodo non lineare, nel nostro caso useremo il metodo dei minimi quadrati. 
 
@@ -188,8 +196,8 @@ g1 <- Misurazioni %>%
   filter(!train) %>% 
   ggplot(aes(x=F1, y=angle)) + 
   geom_point()
- 
- g1 + wrap_table(Misurazioni[1:10,], space="fixed")
+g1 
+#g1 + wrap_table(Misurazioni[1:10,], space="fixed")
 ```
 
 ## Regressione al minimi quadrati
@@ -219,6 +227,10 @@ cor(atan(Misurazioni$angle), predict(reg)) %>% abs()
 ```
 ## Verifica di normalità
 
+Per poter fare in modo che tutti i test che faremo dopo abbiamo valore dobbiamo prima verificare che i punti, su cui svilupperremo il modello, seguano l'ipotesi di normalità.
+
+La normalità possiamo verificarla in vari modi, in particolare useremo un metodo grafico (`grafico quantile-quantile`) e un test statistico (`test di Shapiro`)
+
 ```{r}
 Misurazioni %>% 
   ggplot(aes(sample=angle)) + 
@@ -230,7 +242,18 @@ Misurazioni %>%
 shapiro.test(Misurazioni$angle)
 ```
 
+Il `test di Shapiro` andrebbe sempre seguito da un test delle anomale, come `test di choveniet` o `grafico Box-Plot`, per poter assicurare l'accuratezza del test.
+
+```{r}
+# test di chovenie o qualsiasi verifica delle anomalie
+
+
+```
+
+
 ## Analisi dei residui
+
+Un buon metodo per capire se un modello sia adeguato al data set che vogliamo regredire è l'analisi dei residui, essi ci permettono di capire, nel caso di un modello lineare, se stiamo facendo underfitting o overfitting.
 
 ```{r}
 resid_plot <- function(t, n) {
@@ -249,7 +272,11 @@ Misurazioni %>%
   }
 ```
 
+**Vedere il pattern nel grafico dei residui**
+
 ## Bootstrap 
+
+La tecnica di bootstrap ci permette di ricavare le bande di confidenza del nostro modello
 
 ```{r}
 stats <- function(data){
@@ -277,13 +304,7 @@ ci <- list(
 )
 ```
 
-```{r}
-Misurazioni %>% 
-  mutate(
-    #upper = map_dbl(t, f_conf(., f, ci)),
-    #lower = map_dbl(t, f_conf(., f, ci, upper=F))
-  ) %>% head()
-```
+
 
 # Conclusioni
 
