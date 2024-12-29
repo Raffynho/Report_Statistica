@@ -4,7 +4,7 @@ short_title: "Rapporto di calibrazione"
 logo: "unitn_logo.pdf"
 logo_height: "1.2cm"
 author: "Tommaso Raffaelli"
-date: "`r Sys.Date()`"
+date: "`23-12-2024"
 company: "Dipartimento di Ingegneria Industriale - Corso di Misure Industriali"
 output: memor::pdf_memo
 classoption: a4paper
@@ -13,7 +13,7 @@ libertine: false
 toc: true
 lof: true
 lot: false
-header-includes: #\usepackage[italian]{babel}
+header-includes: \usepackage[italian]{babel}
 ---
 
 ```{r setup, echo=F, include=F}
@@ -23,6 +23,9 @@ library(kableExtra)
 library(tidyverse)
 library(modelr)
 library(purrr)
+library(formatR)
+library(patchwork)
+library(boot)
 
 # Impostazioni output
 knitr::opts_chunk$set(
@@ -33,7 +36,7 @@ knitr::opts_chunk$set(
 	warning    = FALSE,         # sopprimi warning
 	echo       = TRUE,          # mostra i codice dei chunk
 	include    = TRUE,          # mostra l'output dei chunk
-	tidy       = TRUE,          # formatta il codice dei chunk
+	tidy       = FALSE,          # formatta il codice dei chunk
   tidy.opts  = list(width.cutoff=I(75)) # massima larghezza codice nei chunk
 )
 
@@ -43,9 +46,12 @@ set.seed(181203)
 \vfill
 \begin{small}
 * Tutte le tabelle troppo grandi per la visualizzazione all'interno del documento verranno messe per intero alla fine del documento
+
+Chiave di verifica: \begin{center}  877b1af3fb86aea58f44c21692279e76cc770098 \end{center}
 \end{small}
 
 \newpage
+
 
 * Preparazione delle misure 
 * Preparazione dei dati 
@@ -77,12 +83,21 @@ Generando una tabella di esecuzione delle misurazioni usando la funzione `expand
 
 # Overview dell'esperimento
 
+In cosa consiste l'esperimento
+
+Quale è l'obbiettivo dell'esperimento
+
+
+
+
 
 
 # Preparazione dei dati
 
 Come detto in precendenza durante la taratura possiamo modificare due variabili del sistema *forza sul piatto sinistro* che chiameremo `Forza_sx` e *differenza fra i due piatti* che verrà chiamata `Delta_forza`.
-Deciso questo possiamo generare una tabella di test che verrà data all'operatore che svolgerà le misurazioni per la calibrazione
+Deciso questo possiamo generare una tabella di test che verrà data all'operatore che svolgerà le misurazioni necessarie per la calibrazione
+
+
 
 ```{r}
 Ord_dati <- expand.grid(
@@ -95,50 +110,196 @@ Ord_dati <- expand.grid(
   .before = Forza_sx
 ) %>% arrange(RunOrd)
 
-write.csv(Ord_dati, "Test_suite.csv")
+# write.csv(Ord_dati, "Test_suite.csv")
 ```
 
-Definiamo `StdOrd` come ordine in cui `expand.grid` ha generato la tabella e `RunOrd` come una *casualizzazione* di `StdOrd`.
+Definiamo `StdOrd` come ordine in cui `expand.grid` ha generato la tabella e `RunOrd` come una *casualizzazione* di `StdOrd` in modo da ottenere una sequenza di misure casulizzate così da diminurire l'effetto di di possibili variabili modificanti che non vendono considerate nel modello fisico.
 
 
-Ottenendo la seguente tabella \ref{tab:tab1}:
+Ottenendo la seguente tabella: \ref{tab:tab1}:
 ```{r tab1}
 Ord_dati[1:5,] %>% 
   kable(booktabs=T, caption="Ordine di test") %>%
   kable_styling(latex_options = c("striped", "HOLD_position"), position = "center")
 ```
+*OOOOOO *
+Ora l'addetto alle misurazioni per la calibrazione può seguire fare le misurazioni in ordine casualizzato 
 
-L'operatore segiurà l'ordine indicato da `RunOrd` ottenendo una casualizzazione dell'ordine di esecuzione.
 
 
+# Lettura dei dati
 
-## Lettura dei dati
+Come è già stato detto durante l'esperimento abbiamo *angle* come risultato, *F1* e *DF* come varibili da noi modificabili.
 
-```{r}
-Misurazioni_random <- read.csv("Misurazioni_random_1.csv", comment="#")
-Misurazioni_ordinate <- read.csv("Misurazioni_ordinate.csv", comment="#")
-Misurazioni_random
+
+Tabella dei dati ottenuti: \ref{tab:tab2}
+```{r tab2}
+Misurazioni <- read.csv("misurazioni.csv", comment="#")
+
+Misurazioni[1:10,] %>% 
+  kable(booktabs=T, caption="Ordine di test") %>%
+  kable_styling(latex_options = c("striped", "HOLD_position"), position = "center")
 ```
 
-```{r}
-Misurazioni_random %>% 
-  ggplot(aes(x=F1, y=angle, group=DF, color=DF)) + 
-  geom_line() + 
-  geom_point(aes(y=angle)) + 
-  scale_color_viridis_b()
+Andato a mettere a grafico otteniamo:
 
-Misurazioni_random %>% 
+```{r}
+g1 <- Misurazioni %>% 
   ggplot(aes(x=DF, y=angle, group=F1, color=F1)) + 
   geom_line() + 
   geom_point(aes(y=angle)) + 
-  scale_color_viridis_b()
+  scale_color_viridis_b() + 
+  theme(legend.position="top")
+
+g2 <- Misurazioni %>% 
+  ggplot(aes(x=F1, y=angle, group=DF, color=DF)) + 
+  geom_line() + 
+  geom_point(aes(y=angle)) + 
+  scale_color_viridis_b() + 
+  theme(legend.position="top")
+
+g1 + g2
 ```
 
 
 
 
+# Regressione 
+
+Ora possiamo iniziare a fare la regressione però prima dobbiamo fare alcune considerazioni del tipo: 
+
+La regressione seguirà un modello fisico:
+$$
+tan(angle) = (a \frac{DF}{2F1 + FM + DF})
+$$
+questo non è un modello lineare infatti per poter regredire i punti dovremmo usare un metodo non lineare, nel nostro caso useremo il metodo dei minimi quadrati. 
+
+## Selezione dati di train
+
+Prima di fare la regressione possiamo selezionare alcuni punti da omettere dalla regressione del modello in modo da poterli usare come test.
+
+```{r}
+Misurazioni <- Misurazioni %>% 
+  mutate(
+    train = runif(n()) > 1/4
+)
+
+g1 <- Misurazioni %>% 
+  filter(!train) %>% 
+  ggplot(aes(x=F1, y=angle)) + 
+  geom_point()
+ 
+ g1 + wrap_table(Misurazioni[1:10,], space="fixed")
+```
+
+## Regressione al minimi quadrati
+
+Come già detto la regressione non sarà lineare ma useremo il metodo dei minimi quadrati che in *R* si utilizza tramite la funzione `nls`.
+
+La funzione `nls` deve avere come argomenti:
+
+ - Funzione -> Funzione che rappresenta il modello fisico che stimo considerando per la taratura
+ - Start -> valore di partenza per le variabili di calibrazione `a` e `FM`
+ - Data set -> misurazioni su cui voliamo regredire il modello fisico
+
+per comodità possiamo fare una funzione che contiene il modello fisico e ci restituisce l'algolo dati i parametri
+
+```{r}
+func <- function(F1, DF, a, FM){
+  angle <- a*(DF / 2*F1 + FM + DF)
+  return(angle)
+}
+```
+
+```{r}
+reg <- nls(tan(angle) ~ func(F1, DF, a, FM), start=list(a=1, FM=20), data=Misurazioni)
+summary(reg)
+
+cor(atan(Misurazioni$angle), predict(reg)) %>% abs()
+```
+## Verifica di normalità
+
+```{r}
+Misurazioni %>% 
+  ggplot(aes(sample=angle)) + 
+  geom_qq_line(color="red") +
+  geom_qq() 
+```
+
+```{r}
+shapiro.test(Misurazioni$angle)
+```
+
+## Analisi dei residui
+
+```{r}
+resid_plot <- function(t, n) {
+  t %>% 
+    ggplot(aes(x={{n}}, y=atan(resid))) +
+    geom_point()
+}
+
+
+Misurazioni %>%  
+  add_residuals(reg) %>% 
+  add_predictions(reg) %>% {
+    (resid_plot(., F1) + resid_plot(., DF)) / 
+    (resid_plot(., angle) + resid_plot(., pred)) + 
+     resid_plot(., time)
+  }
+```
+
+## Bootstrap 
+
+```{r}
+stats <- function(data){
+  fit <- nls(tan(angle) ~ (a*(DF / 2*F1 + FM + DF)), data=data, start=list(a=1, FM=20))
+  fit$m$getPars()
+}
+
+stats(Misurazioni)
+```
+
+```{r}
+Misurazioni.b <- boot(Misurazioni, R=10000, statistic=function(x, i) stats(x[i,]))
+```
+
+
+```{r}
+boot.ci(Misurazioni.b, type="perc", index=1)
+```
+
+
+```{r}
+ci <- list(
+  a = boot.ci(Misurazioni.b, type="perc", index=1)$percent[4:5],
+  FM = boot.ci(Misurazioni.b, type="perc", index=2)$percent[4:5]
+)
+```
+
+```{r}
+Misurazioni %>% 
+  mutate(
+    #upper = map_dbl(t, f_conf(., f, ci)),
+    #lower = map_dbl(t, f_conf(., f, ci, upper=F))
+  ) %>% head()
+```
+
+# Conclusioni
 
 
 
+# Tabelle 
+
+```{r}
+Misurazioni %>% 
+  head() %>% 
+  kable(booktabs=T, caption="Ordine di test") %>%
+  kable_styling(latex_options = c("striped", "HOLD_position"), position = "center")
+```
+
+
+
+877b1af3fb86aea58f44c21692279e76cc770098
 
 
