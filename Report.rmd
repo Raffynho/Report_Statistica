@@ -1,11 +1,11 @@
 ---
-title: "Bilancia a due piatti: rapporto di calibrazione"
+title: "Bilancia a due piatti: esperimento di taratura"
 short_title: "Rapporto di calibrazione"
 logo: "unitn_logo.pdf"
 logo_height: "1.2cm"
 author: "Tommaso Raffaelli"
-date: "`23-12-2024"
-company: "Dipartimento di Ingegneria Industriale - Corso di Misure Industriali"
+date: "23-12-2024"
+company: "Dipartimento di Ingegneria Industriale - Corso di Statistica"
 output: memor::pdf_memo
 classoption: a4paper
 number_sections: true
@@ -13,7 +13,7 @@ libertine: false
 toc: true
 lof: true
 lot: false
-header-includes: #\usepackage[italian]{babel}
+header-includes: \usepackage[italian]{babel}
 ---
 
 ```{r setup, echo=F, include=F}
@@ -45,67 +45,41 @@ set.seed(181203)
 
 \vfill
 \begin{small}
-* Tutte le tabelle troppo grandi per la visualizzazione all'interno del documento verranno messe per intero alla fine del documento
-
-Chiave di verifica: \begin{center}  877b1af3fb86aea58f44c21692279e76cc770098 \end{center}
+Chiave di verifica:   \hfill 877b1af3fb86aea58f44c21692279e76cc770098 
 \end{small}
 
 \newpage
 
+# Introduzione
 
-* Preparazione delle misure 
-* Preparazione dei dati 
-* Sviluppo del modello
-- Controllo dei residui 
-- Comparazione con punti di test
-* Test con bootstrap
-* Conclusione 
+La bilancia a due piatti è uno strumento classico utilizzato per misurare masse, confrontando un oggetto di massa incognita con pesi di massa nota. La precisione di tale strumento dipende dalla corretta taratura, che data dalla relazione tra l'angolo di equilibrio dell'ago ($\delta$) e la differenza di massa ($\Delta F$) tra i due piatti.
 
+Questo esperimento virtuale ha l'obiettivo di raccogliere dati attraverso una serie di misurazioni simulate, analizzarli mediante tecniche di regressione e determinare i parametri caratteristici della bilancia.
 
-* Variabili modificabili 
+Possiamo dividere l'intero processo dell'esperimento in queste fasi:
 
-Durante la fase di test possiamo modificare due parametro della bilancia che sono: 
+1.  Pianificazione: Definire una serie di combinazioni di $F1$ e $\Delta F$ per coprire l'intero intervallo operativo della bilancia.
 
-* ``Forza sul piatto sinisto```
-* ``Differenza della forza fra i due piatti``
+2.  Acquisizione Dati: Per ogni combinazione di $F1$ e $\Delta F$, registrare l'angolo di equilibrio δδ fornito dalla simulazione.
 
-Il primo varia fra `100` e `500` a intervalli di `50` invece il secondo varia fra `-50` e`50` a intervalli di `5`.
-Generando una tabella di esecuzione delle misurazioni usando la funzione `expand.grid` si nota che essa è di dimensione `192 x ...`; essendo che il nostro esperimento è svolto digitalmente possiamo andare a prelevare tutte le combinazioni senza avere particolari conseguenze in termini di tempo e di spesa, cosa che in un test reale sarebbe da riconsiderare.
+3.  Analisi dei Dati: Applicare una regressione sui dati trasformati, utilizzando la modello fisico e determinare i parametri $a$ e $FM$ che meglio descrivono i dati raccolti.
 
+4.  Valutazione del Modello: Analizzare i residui per valutare la bontà dell'adattamento del modello ai dati.
 
+# Pianificazione dell'esperimento
 
+\label{Pianificazione dell'esperimento}
 
-# Introduzione 
+Come detto in precendenza durante la taratura possiamo modificare due variabili del sistema **forza sul piatto sinistro** che chiameremo `Forza_sx` e **differenza fra i due piatti** che verrà chiamata `Delta_forza`. Deciso questo possiamo generare una tabella di test che verrà data all'operatore che svolgerà le misurazioni necessarie per la calibrazione
 
-L'obbiettivo di questo esperimento è quello di simulare un intero processo di taratura dalla scelta del metodo di test all'analisi del modello per la regressione per poi su tutto questo fare un report che segue tutti i passaggi e tutte le scelte fatte.
+Durante l'aquisizione dei dati per la taratura l'operatore può modificare due variabili del sistema:
 
+-   `Forza sul piatto sinisro`
+-   `Differenza di forza fra i due piatti`
 
+La prima, `Forza_sx`, varia fra $100$ e $500$ a intervalli di $50$, invece la seconda, `Delta_forza`, varia fra $-50$ e $50$ a intervalli di $5$.
 
-
-
-# Overview dell'esperimento
-
-L'esperimento consiste nel simulare un esperimento di 
-
-
-
-
-
-In cosa consiste l'esperimento
-
-Quale è l'obbiettivo dell'esperimento
-
-
-
-
-
-
-# Preparazione dei dati
-
-Come detto in precendenza durante la taratura possiamo modificare due variabili del sistema *forza sul piatto sinistro* che chiameremo `Forza_sx` e *differenza fra i due piatti* che verrà chiamata `Delta_forza`.
-Deciso questo possiamo generare una tabella di test che verrà data all'operatore che svolgerà le misurazioni necessarie per la calibrazione
-
-
+Sapendo tutto questo possiamo creare la tabella di test usando la funzione `expand.grid`.
 
 ```{r}
 Ord_dati <- expand.grid(
@@ -121,26 +95,31 @@ Ord_dati <- expand.grid(
 # write.csv(Ord_dati, "Test_suite.csv")
 ```
 
-Definiamo `StdOrd` come ordine in cui `expand.grid` ha generato la tabella e `RunOrd` come una *casualizzazione* di `StdOrd` in modo da ottenere una sequenza di misure casulizzate così da diminurire l'effetto di di possibili variabili modificanti che non vendono considerate nel modello fisico.
-
+Definiamo `StdOrd` come ordine in cui `expand.grid` ha generato la tabella e `RunOrd` come una **casualizzazione** di `StdOrd` in modo da ottenere una sequenza di misure casualizzate così da diminurire l'effetto di di possibili variabili modificanti che non vendono considerate nel modello fisico.
 
 Ottenendo la seguente tabella: \ref{tab:tab1}:
+
 ```{r tab1}
-Ord_dati[1:5,] %>% 
+Ord_dati[1:10,] %>% 
   kable(booktabs=T, caption="Ordine di test") %>%
   kable_styling(latex_options = c("striped", "HOLD_position"), position = "center")
 ```
-*OOOOOO *
-Ora l'addetto alle misurazioni per la calibrazione può seguire fare le misurazioni in ordine casualizzato 
 
+Ora l'addetto può procedere con l'aquisizione dei dati.
 
+Come si può notare la funzione `expand.grid` mette all'interno della tabella tutte le combinazioni delle due variabili `Forza_sx` e `Delta_forza`, normalmente in un esperimento, non è sempre necessario svolgere tutte le prove possibili poichè possiamo ovviare alla mancanza di dati con metodi dell'analisi statistica, nel caso di questo esperimento essendo virtuale e non richiedendo un' enorme quantità di tempo sono state prese misure per tutte e $192$ le combinazioni all'interno della tabella, in un caso reale questa questione sarebbe da riconsiderare.
 
 # Lettura dei dati
 
-Come è già stato detto durante l'esperimento abbiamo *angle* come risultato, *F1* e *DF* come varibili da noi modificabili.
+Come è già stato detto durante la \nameref{Pianificazione dell'esperimento} dall'addetto otterremo un file `csv` che possiamo convertire in una tabella \ref{tab:tab1} contenente:
 
+-   `time`
+-   `F1`
+-   `DF`
+-   `angle`
 
-Tabella dei dati ottenuti: \ref{tab:tab2}
+Tabella dei dati ottenuti:
+
 ```{r tab2}
 Misurazioni <- read.csv("misurazioni.csv", comment="#")
 
@@ -149,7 +128,7 @@ Misurazioni[1:10,] %>%
   kable_styling(latex_options = c("striped", "HOLD_position"), position = "center")
 ```
 
-Andato a mettere a grafico otteniamo:
+Mettendo a grafico otteniamo:
 
 ```{r}
 g1 <- Misurazioni %>% 
@@ -169,62 +148,26 @@ g2 <- Misurazioni %>%
 g1 + g2
 ```
 
+# Regressione
+
+Ora che abbiamo i dati possiamo iniziare a fare la regressione, ma prima bisogna fare alcune considerazioni del tipo:
+
+- verifica di normalità e verifica delle anomalie
+- selezione dei dati di train
+
+e solo dopo possiamo iniziare la regressione.
 
 
+## Modello fisico
 
-# Regressione 
+La regressione seguirà il modello fisico:
 
-Ora possiamo iniziare a fare la regressione però prima dobbiamo fare alcune considerazioni del tipo: 
-
-La regressione seguirà un modello fisico:
+\label{Modello fisico}
 $$
-tan(angle) = (a * \frac{DF}{2F1 + FM + DF})
-$$
-questo non è un modello lineare infatti per poter regredire i punti dovremmo usare un metodo non lineare, nel nostro caso useremo il metodo dei minimi quadrati. 
+tan(angle) = a \frac{DF}{2F1 + FM + DF} 
+$$ 
+questo non è un modello lineare, infatti, per poter regredire i punti dovremmo usare un metodo non lineare, nel nostro caso useremo il metodo dei minimi quadrati.
 
-## Selezione dati di train
-
-Prima di fare la regressione possiamo selezionare alcuni punti da omettere dalla regressione del modello in modo da poterli usare come test.
-
-```{r}
-Misurazioni <- Misurazioni %>% 
-  mutate(
-    train = runif(n()) > 1/4
-)
-
-g1 <- Misurazioni %>% 
-  filter(!train) %>% 
-  ggplot(aes(x=F1, y=angle)) + 
-  geom_point()
-g1 
-#g1 + wrap_table(Misurazioni[1:10,], space="fixed")
-```
-
-## Regressione al minimi quadrati
-
-Come già detto la regressione non sarà lineare ma useremo il metodo dei minimi quadrati che in *R* si utilizza tramite la funzione `nls`.
-
-La funzione `nls` deve avere come argomenti:
-
- - Funzione -> Funzione che rappresenta il modello fisico che stimo considerando per la taratura
- - Start -> valore di partenza per le variabili di calibrazione `a` e `FM`
- - Data set -> misurazioni su cui voliamo regredire il modello fisico
-
-per comodità possiamo fare una funzione che contiene il modello fisico e ci restituisce l'algolo dati i parametri
-
-```{r}
-func <- function(F1, DF, a, FM){
-  angle <- a*(DF / 2*F1 + FM + DF)
-  return(angle)
-}
-```
-
-```{r}
-reg <- nls(tan(angle) ~ func(F1, DF, a, FM), start=list(a=1, FM=20), data=Misurazioni)
-summary(reg)
-
-cor(atan(Misurazioni$angle), predict(reg)) %>% abs()
-```
 ## Verifica di normalità
 
 Per poter fare in modo che tutti i test che faremo dopo abbiamo valore dobbiamo prima verificare che i punti, su cui svilupperremo il modello, seguano l'ipotesi di normalità.
@@ -242,20 +185,66 @@ Misurazioni %>%
 shapiro.test(Misurazioni$angle)
 ```
 
-Il `test di Shapiro` andrebbe sempre seguito da un test delle anomale, come `test di choveniet` o `grafico Box-Plot`, per poter assicurare l'accuratezza del test.
+Il `test di Shapiro` andrebbe sempre seguito da un test delle anomalie, come `test di Choveniet` o `test di Grubb`, per poter assicurare l'accuratezza del test.
 
 ```{r}
-# test di chovenie o qualsiasi verifica delle anomalie
-
-
+library(outliers)
+grubbs.test(Misurazioni$angle)
 ```
 
+## Selezione dati di train
 
-## Analisi dei residui
-
-Un buon metodo per capire se un modello sia adeguato al data set che vogliamo regredire è l'analisi dei residui, essi ci permettono di capire, nel caso di un modello lineare, se stiamo facendo underfitting o overfitting.
+Prima di fare la regressione possiamo selezionare alcuni punti da omettere dal set di dati usati per la regressione del modello in modo da poterli usare come verifica del modello.
 
 ```{r}
+Misurazioni <- Misurazioni %>% 
+  mutate(
+    train = runif(n()) > 1/4
+)
+
+g1 <- Misurazioni %>% 
+  filter(!train) %>% 
+  ggplot(aes(x=F1, y=angle)) + 
+  geom_point()
+
+g1 + wrap_table(Misurazioni[1:10,], space="fixed")
+```
+
+## Regressione ai minimi quadrati
+\label{Regressione}
+
+Come già detto la regressione non sarà lineare ma useremo il metodo dei minimi quadrati che in *R* si utilizza tramite la funzione `nls`.
+
+La funzione `nls` deve avere come argomenti:
+
+1.  Funzione: Funzione che rappresenta il modello fisico che stimo considerando per la taratura
+2.  Start: valore di partenza per le variabili di calibrazione `a` e `FM`
+3.  Data set: misurazioni su cui voliamo regredire il modello fisico
+
+Per comodità possiamo fare una funzione che contiene il \nameref{Modello fisico} e ci restituisce l'angolo, dati i parametri.
+
+```{r}
+func <- function(F1, DF, a, FM){
+  angle <- (a*(DF / 2*F1 + FM + DF))
+  return(angle)
+}
+```
+
+Ora usando la funzione appena dichiarata possiamo effetturare la regressione del modello.
+
+```{r}
+reg <- nls(tan(angle) ~ func(F1, DF, a, FM), start=list(a=1, FM=20), data=Misurazioni)
+summary(reg)
+
+cor(atan(Misurazioni$angle), predict(reg)) %>% abs()
+```
+
+## Analisi dei residui
+\label{Residui}
+
+Un buon metodo per capire se un modello sia adeguato al data set che vogliamo regredire è l'analisi dei residui, essi ci permettono ad esempio di capire, nel caso di un modello lineare, se stiamo facendo underfitting o overfitting.
+
+```{r residui}
 resid_plot <- function(t, n) {
   t %>% 
     ggplot(aes(x={{n}}, y=atan(resid))) +
@@ -272,15 +261,16 @@ Misurazioni %>%
   }
 ```
 
-**Vedere il pattern nel grafico dei residui**
+Si può notare come nell'grafico dei residui contro l'angolo ci sia un pattern nei punti
 
-## Bootstrap 
+## Bootstrap
+\label{Bootstrap}
 
 La tecnica di bootstrap ci permette di ricavare le bande di confidenza del nostro modello
 
 ```{r}
 stats <- function(data){
-  fit <- nls(tan(angle) ~ (a*(DF / 2*F1 + FM + DF)), data=data, start=list(a=1, FM=20))
+  fit <- nls(tan(angle) ~ func(F1, DF, a, FM), data=data, start=list(a=1, FM=20))
   fit$m$getPars()
 }
 
@@ -291,36 +281,21 @@ stats(Misurazioni)
 Misurazioni.b <- boot(Misurazioni, R=10000, statistic=function(x, i) stats(x[i,]))
 ```
 
-
-```{r}
-boot.ci(Misurazioni.b, type="perc", index=1)
-```
-
-
 ```{r}
 ci <- list(
   a = boot.ci(Misurazioni.b, type="perc", index=1)$percent[4:5],
   FM = boot.ci(Misurazioni.b, type="perc", index=2)$percent[4:5]
 )
+
+ci
 ```
 
-
+Ottenendo così gli intervalli di confidenza.
 
 # Conclusioni
 
+Dall'analisi dei dati raccolti, è emerso che la regressione applicata non è in grado di rappresentare in modo soddisfacente il comportamento reale osservato durante l’esperimento.
+Tutte le informazioni ricavate, il pattern nei \nameref{Residui}, i `p-value` di `a` e `FM` della \nameref{Regressione} e le bande di confidenza ricavate tramite la tecnica di \nameref{Bootstrap} portano a pensare che il problema sia una cattiva regressione.
 
-
-# Tabelle 
-
-```{r}
-Misurazioni %>% 
-  head() %>% 
-  kable(booktabs=T, caption="Ordine di test") %>%
-  kable_styling(latex_options = c("striped", "HOLD_position"), position = "center")
-```
-
-
-
-877b1af3fb86aea58f44c21692279e76cc770098
-
+Le cause di una cattiva regressione possono essere i dati ricavati dall'esperimento o la regressione in sè, questo può significare che non ci sono abbastanza punti, cosa che dubito, o all'interno delle misurazioni ci sono delle anomalie e queste rende la regressione inaccurata, potrebbe essere anche la regressione che non riesce a rappresentare bene tutto quello che succede durante l'acquisizione dei dati
 
