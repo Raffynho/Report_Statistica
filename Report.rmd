@@ -1,6 +1,6 @@
 ---
 title: "Bilancia a due piatti: esperimento di taratura"
-short_title: "Rapporto di calibrazione"
+short_title: "Esperimento di taratura"
 logo: "unitn_logo.pdf"
 logo_height: "1.2cm"
 author: "Tommaso Raffaelli"
